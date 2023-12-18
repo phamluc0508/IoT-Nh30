@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Phụ Tá</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0' />
+    <meta charset='UTF-8'>
+    <style>
+        body {
+            background-color: #E6D8D5;
+            text-align: center;
+        }
+    </style>
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+</head>
+
+<body>
+    <h1 id="title" style="display: flex; justify-content: center;align-items: center; height: 100vh;">Chờ Bác Sĩ Gọi</h1>
+    <div class="container" id="container1" style="display: none;">
+        <h1>Bác Sĩ Cần Sự Hỗ Trợ Từ Bạn</h1>
+        <h2>Phòng: <span id='room'>102</span></h2>
+        <h2>Bệnh Nhân: <span id='patient'>Phạm Lực</span></h2>
+        <h2>Status: <span id='status'>-</span></h2>
+        <div class="button">
+            <button style="margin-right: 20px;" type='button' id='BTN'>
+                <h1>Xác nhận</h1>
+            </button>
+            <button type='button' id='BTN1'>
+                <h1>Từ Chối</h1>
+            </button>
+        </div>
+        
+    </div>
+
+</body>
+<script>
+    const clientId = 'mqttjs_' + Math.random().toString(16).substr(2, 8)
+    const host = 'ws://broker.hivemq.com:8000/mqtt'
+    const options = {
+        keepalive: 60,
+        clientId: clientId,
+        protocolId: 'MQTT',
+        protocolVersion: 4,
+        clean: true,
+        reconnectPeriod: 1000,
+        connectTimeout: 30 * 1000,
+        will: {
+            topic: 'WillMsg',
+            payload: 'Connection Closed abnormally..!',
+            qos: 0,
+            retain: false
+        },
+    }
+    console.log('Connecting mqtt client')
+    const client = mqtt.connect(host, options)
+    client.on('error', (err) => {
+        console.log('Connection error: ', err)
+        client.end()
+    })
+    client.on('reconnect', () => {
+        console.log('Reconnecting...')
+    })
+    client.subscribe('/PTIT_CNTT411/0508/bacsi', { qos: 0 })
+    client.subscribe('/PTIT_CNTT411/0508/phuta', { qos: 0 })
+    client.subscribe('/PTIT_CNTT411/0508/status', { qos: 0 })
+    client.publish('/PTIT_CNTT411/0508/bacsi', 'OFF', { qos: 0, retain: false })
+    client.on('message', (topic, message, packet) => {
+        if (topic == "/PTIT_CNTT411/0508/bacsi") {
+            console.log(`Received Message: ${message.toString()} On topic: ${topic}`)
+            if (message.toString() == "ON") {
+                document.getElementById("container1").style.display = "block";
+                document.getElementById("title").style.display = "none";
+            }
+            else if (message.toString() == "OFF") 
+            {
+                document.getElementById("container1").style.display = "none";
+                document.getElementById("title").style.display = "flex";
+            }
+        }
+        if (topic == '/PTIT_CNTT411/0508/status') {
+            console.log(`Received Message: ${message.toString()} On topic: ${topic}`)
+            document.getElementById('status').innerHTML = message.toString();
+      }
+
+    })
+    document.getElementById("BTN").addEventListener("click", function (event) {
+        // client.publish('/PTIT_CNTT411/0508/bacsi', 'ON', { qos: 0, retain: false })
+        client.subscribe('/PTIT_CNTT411/0508/bacsi', { qos: 0 })
+        client.subscribe('/PTIT_CNTT411/0508/phuta', { qos: 0 })
+        client.publish('/PTIT_CNTT411/0508/phuta', 'ON', { qos: 0, retain: false })
+        client.publish('/PTIT_CNTT411/0508/bacsi', 'OFF', { qos: 0, retain: false })
+    });
+    document.getElementById("BTN1").addEventListener("click", function (event) {
+        // client.publish('/PTIT_CNTT411/0508/bacsi', 'ON', { qos: 0, retain: false })
+        client.subscribe('/PTIT_CNTT411/0508/bacsi', { qos: 0 })
+        client.subscribe('/PTIT_CNTT411/0508/phuta', { qos: 0 })
+        client.publish('/PTIT_CNTT411/0508/phuta', 'OFF1', { qos: 0, retain: false })
+        client.publish('/PTIT_CNTT411/0508/bacsi', 'OFF', { qos: 0, retain: false })
+    });
+</script>
+
+</html>

@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Bác Sĩ</title>
+  <meta name='viewport' content='width=device-width, initial-scale=1.0' />
+  <meta charset='UTF-8'>
+  <style>
+    body {
+      background-color: #E6D8D5;
+      text-align: center;
+      font-family: Arial, sans-serif;
+    }
+
+    .container {
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 20px;
+    }
+
+    .container div {
+      width: 45%;
+      background-color: #FFFFFF;
+      padding: 20px;
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .container h1 {
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+
+    #status {
+      font-weight: bold;
+    }
+
+    #BTN,
+    #statusSubmitBtn,
+    #comfirmOKE,
+    #comfirmOKE1 {
+      background-color: #4CAF50;
+      border: none;
+      color: white;
+      padding: 10px 20px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 24px;
+      margin-top: 20px;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+
+    #registrationForm {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 20px;
+    }
+
+    #dataForm {
+      text-align: left;
+    }
+
+    #dataForm h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    #dataForm label {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    #dataForm input[type="text"] {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+      margin-bottom: 10px;
+    }
+
+    #dataForm button[type="submit"] {
+      background-color: #4CAF50;
+      border: none;
+      color: white;
+      padding: 10px 20px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 16px;
+      margin-top: 20px;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+
+    #statusForm {
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    .dialog-overlay {
+      background-color: rgba(0, 0, 0, 0.5);
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+
+    .dialog-content {
+      background-color: #FFFFFF;
+      padding: 20px;
+      width: 40%;
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      position: relative;
+    }
+
+    #closeBtn {
+      position: absolute;
+      top: 10px;
+      /* Điều chỉnh vị trí theo y (để nút không bị che khuất) */
+      right: 10px;
+      /* Điều chỉnh vị trí theo x */
+      font-size: 18px;
+      background-color: transparent;
+      border: none;
+      color: #000;
+      cursor: pointer;
+    }
+  </style>
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+</head>
+
+<body>
+  <div style="display: flex; justify-content:space-around;">
+    <div>
+      <h1>Phòng: <span id='room'>102</span></h1>
+      <h1>Temperature: <span id='temp'>-</span></h1>
+      <h1>Humidity: <span id='hum'>-</span></h1>
+    </div>
+    <div>
+      <h1>Bệnh Nhân: <span id='patient'>Phạm Lực</span></h1>
+      <h1>SpO2: <span id='spo'>-</span></h1>
+      <h1>Heartbeat: <span id='heart'>-</span></h1>
+    </div>
+  </div>
+  <h1>Status notification: <span id='status'>-</span></h1>
+
+
+
+  <button type='button' id='BTN'>
+    <span>Gọi Phụ Tá</span>
+  </button>
+  <div class="dialog-overlay" id="comfirm" style="display: none;">
+    <div class="dialog-content">
+      <h1 id="comfirm1" >Đang chờ phản hồi từ phụ tá ...</h1>
+      <div id="comfirm2"  >
+        <h1>Phụ tá đã xác nhận.</h1>
+        <button id="comfirmOKE">OK</button>
+      </div>
+      <div id="comfirm3"  >
+        <h1 >Phụ tá từ chối.</h1>
+        <button id="comfirmOKE1">OK</button>
+      </div>
+     
+    </div>
+  </div>
+
+  <div class="dialog-overlay" id="dialogOverlay" style="display: none;">
+    <div class="dialog-content">
+      <button type="button" id="closeBtn">X</button>
+      <form id="dataForm">
+        <h1>Data Form</h1>
+        <label for="diseaseInput">Disease:</label>
+        <input type="text" id="diseaseInput" name="disease" required><br><br>
+        <label for="temperatureInput">Temperature:</label>
+        <input type="text" id="temperatureInput" name="temperature" required><br><br>
+        <label for="humidityInput">Humidity:</label>
+        <input type="text" id="humidityInput" name="humidity" required><br><br>
+        <label for="spoInput">SpO2:</label>
+        <input type="text" id="spoInput" name="spo" required><br><br>
+        <label for="heartbeatInput">Heartbeat:</label>
+        <input type="text" id="heartbeatInput" name="heartbeat" required><br><br>
+        <button type="submit">Submit</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="statusForm">
+    <form id="statusInputForm">
+      <button type="submit" id="statusSubmitBtn">Thêm Bệnh</button>
+    </form>
+  </div>
+  <script>
+    var dataValue = [
+      {
+        temperature: 0,
+        humidity: 0,
+        spo: 0,
+        heartbeat: 0,
+        disease: 0
+      }
+    ];
+    var valueTem = document.getElementById('temp');
+    var valueHum = document.getElementById('hum');
+    var valueSpo = document.getElementById('spo');
+    var valueHeart = document.getElementById('heart');
+    var valueStatus = document.getElementById('status');
+    const url = "http://192.168.1.7/kiemTraTinhTrang";
+    const urlPost = "http://127.0.0.1:5000/add";
+    localStorage.setItem("checkUpdate", "True");
+    function viewData() {
+      fetch(url)
+        .then(response => response.json())
+        .then(data => {
+          valueTem.textContent = data.temperature;
+          valueHum.textContent = data.humidity;
+          valueSpo.textContent = data.spo;
+          valueHeart.textContent = data.heartbeat;
+          valueStatus.textContent = data.disease;
+          dataValue=data;
+        })
+        .catch(error => {
+          console.error('Error:', error);
+        });
+    }
+    setInterval(
+      function () {
+        if (localStorage.getItem("checkUpdate") == "True") viewData();
+      }
+      , 2000);
+
+    document.getElementById("statusSubmitBtn").addEventListener("click", function (event) {
+      event.preventDefault();
+      document.getElementById("statusForm").style.display = "none";
+      document.getElementById("dialogOverlay").style.display = "flex";
+      document.getElementById("temperatureInput").value = dataValue.temperature;
+      document.getElementById("humidityInput").value = dataValue.humidity;
+      document.getElementById("spoInput").value = dataValue.spo;
+      document.getElementById("heartbeatInput").value = dataValue.heartbeat;
+      document.getElementById("diseaseInput").value = dataValue.disease;
+      localStorage.setItem("checkUpdate", "False");
+    });
+    document.getElementById("closeBtn").addEventListener("click", function (event) {
+      document.getElementById("statusForm").style.display = "block";
+      document.getElementById("dialogOverlay").style.display = "none";
+      localStorage.setItem("checkUpdate", "True");
+    });
+    document.getElementById("comfirmOKE").addEventListener("click", function (event) {
+      document.getElementById("comfirm").style.display = "none";
+      localStorage.setItem("checkUpdate", "True");
+    });
+    document.getElementById("comfirmOKE1").addEventListener("click", function (event) {
+      document.getElementById("comfirm").style.display = "none";
+      localStorage.setItem("checkUpdate", "True");
+    });
+    document.getElementById("dataForm").addEventListener("submit", function (event) {
+      event.preventDefault();
+
+      var temperature = document.getElementById("temperatureInput").value;
+      var humidity = document.getElementById("humidityInput").value;
+      var spo = document.getElementById("spoInput").value;
+      var heartbeat = document.getElementById("heartbeatInput").value;
+      var disease = document.getElementById("diseaseInput").value;
+      console.log(temperature + humidity);
+      // Gửi yêu cầu HTTP GET đến địa chỉ '/add' trên backend
+      fetch(urlPost + '?temperature=' + temperature + '&humidity=' + humidity + '&spo=' + spo + '&heartbeat=' + heartbeat + '&disease=' + disease, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+        .then(function (response) {
+          return response.json();
+        })
+        .then(function (data) {
+          console.log(data);
+          // Xử lý phản hồi từ backend tại đây (nếu cần)
+        })
+        .catch(function (error) {
+          console.log('Lỗi:', error);
+        });
+      alert("Successfully Bro")
+      // Show the status input form again
+      document.getElementById("statusForm").style.display = "block";
+      document.getElementById("dialogOverlay").style.display = "none";
+      localStorage.setItem("checkUpdate", "True");
+    });
+
+    const clientId = 'mqttjs_' + Math.random().toString(16).substr(2, 8)
+    const host = 'ws://broker.hivemq.com:8000/mqtt'
+    const options = {
+      keepalive: 60,
+      clientId: clientId,
+      protocolId: 'MQTT',
+      protocolVersion: 4,
+      clean: true,
+      reconnectPeriod: 1000,
+      connectTimeout: 30 * 1000,
+      will: {
+        topic: 'WillMsg',
+        payload: 'Connection Closed abnormally..!',
+        qos: 0,
+        retain: false
+      },
+    }
+    console.log('Connecting mqtt client')
+    const client = mqtt.connect(host, options)
+    client.on('error', (err) => {
+      console.log('Connection error: ', err)
+      client.end()
+    })
+    client.on('reconnect', () => {
+      console.log('Reconnecting...')
+    })
+
+    document.getElementById("BTN").addEventListener("click", function (event) {
+      localStorage.setItem("checkUpdate","False");
+      client.subscribe('/PTIT_CNTT411/0508/bacsi', { qos: 0 })
+      client.subscribe('/PTIT_CNTT411/0508/status', { qos: 0 })
+      client.subscribe('/PTIT_CNTT411/0508/phuta', { qos: 0 })
+      client.publish('/PTIT_CNTT411/0508/status', dataValue.disease.toString(), { qos: 0, retain: false })
+      client.publish('/PTIT_CNTT411/0508/bacsi', 'ON', { qos: 0, retain: false })
+      client.publish('/PTIT_CNTT411/0508/phuta', 'OFF', { qos: 0, retain: false })
+      client.on('message', (topic, message, packet) => {
+
+        if (topic == '/PTIT_CNTT411/0508/phuta') {
+          console.log(`Received Message: ${message.toString()} On topic: ${topic}`)
+          if (message.toString() == "ON") {
+            document.getElementById("comfirm").style.display = "flex";
+            document.getElementById("comfirm2").style.display = "block";
+            document.getElementById("comfirm1").style.display = "none";
+            document.getElementById("comfirm3").style.display = "none";
+          }
+          else if (message.toString() == "OFF") {
+            document.getElementById("comfirm").style.display = "flex";
+            document.getElementById("comfirm1").style.display = "block";
+            document.getElementById("comfirm2").style.display = "none";
+            document.getElementById("comfirm3").style.display = "none";
+          }
+          else if (message.toString() == "OFF1") {
+            document.getElementById("comfirm").style.display = "flex";
+            document.getElementById("comfirm3").style.display = "block";
+            document.getElementById("comfirm1").style.display = "none";
+            document.getElementById("comfirm2").style.display = "none";
+          }
+        }
+      })
+    });
+  </script>
+
+</body>
+
+</html>
